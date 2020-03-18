@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Confirmed COVID-19 Cases</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js"></script>
+    <style>
+      body {
+        font: 12px Arial;
+      }
+
+      path {
+        stroke: steelblue;
+        stroke-width: 2;
+        fill: none;
+      }
+
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: grey;
+        stroke-width: 1;
+        shape-rendering: crispEdges;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Confirmed COVID-19 Cases</h1>
+    <script>
+      // set the dimensions and margins of the graph
+      var margin = { top: 30, right: 40, bottom: 30, left: 50 },
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+      // parse the date / time
+      var parseTime = d3.timeParse("%m/%d/%y");
+
+      // set the ranges
+      var x = d3.scaleTime().range([0, width]);
+      var y = d3.scaleLinear().range([height, 0]);
+
+      // define the line
+      var usValueline = d3
+        .line()
+        .x(function(d) {
+          return x(d.date);
+        })
+        .y(function(d) {
+          return y(d.first);
+        });
+
+        var italyValueline = d3
+        .line()
+        .x(function(d) {
+          return x(d.date);
+        })
+        .y(function(d) {
+          return y(d.second);
+        });
+
+      // append the svg obgect to the body of the page
+      // appends a 'group' element to 'svg'
+      // moves the 'group' element to the top left margin
+      var svg = d3
+        .select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      // Get the data
+      d3.json("https://coronavirus-tracker-api.herokuapp.com/confirmed").then(
+        data => {
+          const usData = data.locations
+            .filter(d => d.country == "US" && d.province.indexOf(", ") == -1)
+            .map(p => p.history)
+            .reduce((result, c) => {
+              Object.keys(c).forEach(day => {
+                result[day] = (result[day] || 0) + c[day];
+              });
+              return result;
+            }, {});            
+
+          const italyData = data.locations.find(d => d.country == "Italy")
+            .history;
+            
+          const combinedData = _.mergeWith(
+            usData,
+            italyData,
+            (objValue, srcValue) => {
+              return [objValue, srcValue];
+            }
+          );
+
+          let chartData = Object.keys(combinedData)
+            .map(k => {
+              return {
+                date: parseTime(k),
+                first: +combinedData[k][0],
+                second: +combinedData[k][1]
+              };
+            })
+            .sort((a, b) => a.date - b.date);          
+
+          // Scale the range of the data
+          x.domain(
+            d3.extent(chartData, function(d) {
+              return d.date;
+            })
+          );
+          y.domain([
+            0,
+            d3.max(chartData, function(d) {
+              return Math.max(d.first, d.second);
+            })
+          ]);
+
+          // Add the valueline path.
+          svg
+            .append("path")
+            .data([chartData])
+            .attr("class", "line")
+            .attr("d", usValueline);
+
+            svg
+            .append("path")
+            .data([chartData])
+            .attr("class", "line")
+            .attr("d", italyValueline);
+
+          // Add legend for first
+          svg
+            .append("text")
+            .attr(
+              "transform",
+              "translate(" +
+                (width + 3) +
+                "," +
+                y(chartData[chartData.length - 1].first) +
+                ")"
+            )
+            .attr("dy", ".35em")
+            .attr("text-anchor", "start")
+            .style("fill", "steelblue")
+            .text("US");
+
+            svg
+            .append("text")
+            .attr(
+              "transform",
+              "translate(" +
+                (width + 3) +
+                "," +
+                y(chartData[chartData.length - 1].second) +
+                ")"
+            )
+            .attr("dy", ".35em")
+            .attr("text-anchor", "start")
+            .style("fill", "steelblue")
+            .text("Italy");
+
+          // Add the X Axis
+          svg
+            .append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          // Add the Y Axis
+          svg.append("g").call(d3.axisLeft(y));
+        }
+      );
+    </script>
+  </body>
+</html>
