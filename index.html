@@ -54,6 +54,13 @@
 
       .loaded .selection {
         display: flex;
+        align-items: center;
+      }
+
+      select {
+        height: 1.6rem;
+        border: 1px solid #ccc;
+        background-color: #ffffff;
       }
 
       label {
@@ -77,13 +84,14 @@
     <footer>
       <p>
         <strong>Data Source:</strong>
-        <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 (2019-nCoV) Data Repository by Johns Hopkins CSSE</a>
+        <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 (2019-nCoV) Data Repository by Johns Hopkins CSSE</a> (data pulled from API at
+        <a href="https://coronavirus-tracker-api.herokuapp.com/confirmed">https://coronavirus-tracker-api.herokuapp.com/confirmed</a>; source:
+        <a href="https://github.com/ExpDev07/coronavirus-tracker-api">https://github.com/ExpDev07/coronavirus-tracker-api</a>)
       </p>
-      and is pulled from the API at
-      <a href="https://coronavirus-tracker-api.herokuapp.com/confirmed">https://coronavirus-tracker-api.herokuapp.com/confirmed</a>
-      (Source code:
-      <a href="https://github.com/ExpDev07/coronavirus-tracker-api">https://github.com/ExpDev07/coronavirus-tracker-api</a>
-      ).
+      <p>
+        <strong>Source Code:</strong>
+        <a href="https://github.com/bradymholt/covid19-chart">https://github.com/bradymholt/covid19-chart</a>
+      </p>
     </footer>
     <script>
       const country1Default = "US";
