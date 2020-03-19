@@ -84,7 +84,7 @@
         ).then(response => response.json());
       }
 
-      function setupDropdowns(chartData, rawData) {
+      function setupDropdowns(chartConfig, rawData) {
         const countries = _.uniq(
           rawData.locations.map(l => l.country)
         ).sort((a, b) => a.localeCompare(b));
