@@ -5,7 +5,7 @@
     <title>Confirmed COVID-19 Cases</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js"></script>    
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js"></script>
     <style>
       body {
         font: 0.8rem Arial;
@@ -15,23 +15,23 @@
         display: none;
       }
 
-      path.country-1 {
+      path.country1 {
         stroke: steelblue;
         stroke-width: 2;
         fill: none;
       }
 
-      .legend.country-1 {
+      .legend.country1 {
         fill: steelblue;
       }
 
-      path.country-2 {
+      path.country2 {
         stroke: blueviolet;
         stroke-width: 2;
         fill: none;
       }
 
-      .legend.country-2 {
+      .legend.country2 {
         fill: blueviolet;
       }
 
@@ -66,10 +66,10 @@
     <h1>Confirmed COVID-19 Cases</h1>
     <div class="loading">Loading...</div>
     <div class="selection">
-      <label for="country-1">Country 1:</label>
-      <select id="country-1"></select>
-      <label for="country-2">Country 2:</label>
-      <select id="country-2"></select>
+      <label for="country1">Country 1:</label>
+      <select id="country1"></select>
+      <label for="country2">Country 2:</label>
+      <select id="country2"></select>
     </div>
     <main>
       <!--chart will be rendered here-->
@@ -86,14 +86,17 @@
       ).
     </footer>
     <script>
+      const country1Default = "US";
+      const country2Default = "Italy";
+
       function downloadData() {
         return fetch("https://coronavirus-tracker-api.herokuapp.com/confirmed").then(response => response.json());
       }
 
       function setupDropdowns(chartConfig, rawData) {
         const countries = _.uniq(rawData.locations.map(l => l.country)).sort((a, b) => a.localeCompare(b));
-        const country1Select = document.getElementById("country-1");
-        const country2Select = document.getElementById("country-2");
+        const country1Select = document.getElementById("country1");
+        const country2Select = document.getElementById("country2");
 
         for (let countryName of countries) {
           const el = document.createElement("option");
@@ -101,11 +104,11 @@
           el.value = countryName;
           const el2 = el.cloneNode(true);
 
-          if (el.value == "US") {
+          if (el.value == country1Default) {
             el.setAttribute("selected", "selected");
           }
 
-          if (el2.value == "Italy") {
+          if (el2.value == country2Default) {
             el2.setAttribute("selected", "selected");
           }
 
@@ -149,6 +152,7 @@
       function gatherChartData(data, country1, country2) {
         let usData = null;
         if (country1 == "US" || country2 == "US") {
+          // US data is segmented by province (State) so we need to combine it all
           usData = data.locations
             .filter(d => d.country == "US" && d.province.indexOf(", ") == -1)
             .map(p => p.history)
@@ -159,97 +163,82 @@
               return result;
             }, {});
         }
-        const getCountryData = country => data.locations.find(d => d.country == country).history;
+        const getCountryData = country => (country == "US" ? usData : data.locations.find(d => d.country == country).history);
 
-        const country1Data = country1 == "US" ? usData : getCountryData(country1);
-        const country2Data = country2 == "US" ? usData : getCountryData(country2);
+        let maxDate = null;
+        let maxCount = null;
 
-        const mergedData = _.mergeWith(country1Data, country2Data, (target, current) => {
-          return [target, current];
+        const countries = [country1, country2].map(country => {
+          const countryData = getCountryData(country);
+          const data = Object.keys(countryData)
+            .map(k => {
+              const date = d3.timeParse("%m/%d/%y")(k);
+              const count = +countryData[k];
+
+              if (!maxDate || maxDate < date) {
+                maxDate = date;
+              }
+
+              if (!maxCount || maxCount < count) {
+                maxCount = count;
+              }
+
+              return { date, count };
+            })
+            .sort((a, b) => a.date - b.date);
+
+          return { country, data };
         });
 
-        let chartData = Object.keys(mergedData)
-          .map(k => {
-            return {
-              date: d3.timeParse("%m/%d/%y")(k),
-              country1Confirmed: +mergedData[k][0],
-              country2Confirmed: +mergedData[k][1]
-            };
-          })
-          .sort((a, b) => a.date - b.date);
+        const chartData = { maxDate, maxCount, countries };
 
         console.log(chartData);
-        return { countries: [country1, country2], data: chartData };
+
+        return chartData;
       }
 
       function renderData(chartConfig, chartData) {
         // Remove any previous lines
         d3.selectAll("g > *").remove();
 
-        const data = chartData.data;
         // Scale the range of the data
         chartConfig.x.domain(
-          d3.extent(data, function(d) {
+          d3.extent(chartData.countries[0].data, function(d) {
             return d.date;
           })
         );
-        chartConfig.y.domain([
-          0,
-          d3.max(data, function(d) {
-            return Math.max(d.country1Confirmed, d.country2Confirmed);
-          })
-        ]);
+        chartConfig.y.domain([0, chartData.maxCount]);
 
-        // Define the series lines
-        var country1Line = d3
-          .line()
-          .x(function(d) {
-            return chartConfig.x(d.date);
-          })
-          .y(function(d) {
-            return chartConfig.y(d.country1Confirmed);
-          });
+        // Add line for each country
+        for (let i = 0; i < chartData.countries.length; i++) {
+          const countryData = chartData.countries[i].data;
 
-        var country2Line = d3
-          .line()
-          .x(function(d) {
-            return chartConfig.x(d.date);
-          })
-          .y(function(d) {
-            return chartConfig.y(d.country2Confirmed);
-          });
+          // Build the line
+          const line = d3
+            .line()
+            .x(function(d) {
+              return chartConfig.x(d.date);
+            })
+            .y(function(d) {
+              return chartConfig.y(d.count);
+            });
 
-        // Add the country1Line path
-        chartConfig.svg
-          .append("path")
-          .data([data])
-          .attr("class", "line country-1")
-          .attr("d", country1Line);
+          // Add the line to the chart
+          chartConfig.svg
+            .append("path")
+            .data([countryData])
+            .attr("class", `line country${(i + 1).toString()}`)
+            .attr("d", line);
 
-        // Add the country2Line path
-        chartConfig.svg
-          .append("path")
-          .data([data])
-          .attr("class", "line country-2")
-          .attr("d", country2Line);
-
-        // Add legend for country 1
-        chartConfig.svg
-          .append("text")
-          .attr("transform", "translate(" + (chartConfig.width + 3) + "," + chartConfig.y(data[data.length - 1].country1Confirmed) + ")")
-          .attr("dy", ".35em")
-          .attr("text-anchor", "start")
-          .attr("class", "legend country-1")
-          .text(chartData.countries[0]);
-
-        // Add legend for country 2
-        chartConfig.svg
-          .append("text")
-          .attr("transform", "translate(" + (chartConfig.width + 3) + "," + chartConfig.y(data[data.length - 1].country2Confirmed) + ")")
-          .attr("dy", ".35em")
-          .attr("text-anchor", "start")
-          .attr("class", "legend country-2")
-          .text(chartData.countries[1]);
+          // Add legend
+          chartConfig.svg
+            .append("text")
+            .attr("transform", "translate(" + (chartConfig.width + 3) + "," + chartConfig.y(countryData[countryData.length - 1].count) + ")")
+            .attr("dy", ".35em")
+            .attr("text-anchor", "start")
+            .attr("class", `legend country${(i + 1).toString()}`)
+            .text(chartData.countries[i].country);
+        }
 
         // Add the x axis
         chartConfig.svg
