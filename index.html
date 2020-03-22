@@ -11,8 +11,23 @@
         font: 0.8rem Arial;
       }
 
+      .loading {
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.5rem;
+      }
+
+      .chart,
+      .loading {
+        width: 960px;
+        height: 500px;
+        max-width: 100%;
+      }
+
       .loaded .loading {
-        visibility: hidden;
+        display: none;
       }
 
       path.country1 {
@@ -43,18 +58,14 @@
         shape-rendering: crispEdges;
       }
 
-      main {
-        width: 1264px;
-        height: 550px;
-      }
-
       .selection {
-        display: none;
+        display: flex;
+        visibility: hidden;
       }
 
       .loaded .selection {
         display: flex;
-        align-items: center;
+        visibility: visible;
       }
 
       select {
@@ -65,30 +76,52 @@
       }
 
       label {
-        margin: 0 10px;
+        line-height: 1.6rem;
         font-weight: bold;
+        margin: 0 10px 0;
+      }
+
+      @media screen and (max-width: 650px) {
+        .chart,
+        .loading {
+          height: auto;
+        }
+
+        .selection {
+          flex-direction: column;
+          align-items: initial;
+        }
+
+        .selection label {
+          margin: 10px 0;
+        }
       }
     </style>
   </head>
   <body>
     <h1>Confirmed COVID-19 Cases</h1>
-    <div class="loading">Loading...</div>
+    <div class="selection">
+      <label for="country1">Country 1:</label>
+      <select id="country1"></select>
+      <label for="country2">Country 2:</label>
+      <select id="country2"></select>
+    </div>
     <main>
-      <div class="selection">
-        <label for="country1">Country 1:</label>
-        <select id="country1"></select>
-        <label for="country2">Country 2:</label>
-        <select id="country2"></select>
+      <div class="chart">
+        <div class="loading">LOADING ...</div>
+        <!--chart will be rendered here-->
       </div>
-      <!--chart will be rendered here-->
     </main>
     <footer>
       <h2>Sources</h2>
       <ul>
         <li><strong>Data</strong> - <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 (2019-nCoV) Data Repository by Johns Hopkins CSSE</a></li>
-        <li><strong>API</strong> - <a href="https://coronavirus-tracker-api.herokuapp.com/confirmed">https://coronavirus-tracker-api.herokuapp.com/confirmed</a> (source code: <a href="https://github.com/ExpDev07/coronavirus-tracker-api">https://github.com/ExpDev07/coronavirus-tracker-api</a>)</li>
+        <li>
+          <strong>API</strong> - <a href="https://coronavirus-tracker-api.herokuapp.com/confirmed">https://coronavirus-tracker-api.herokuapp.com/confirmed</a> (source code:
+          <a href="https://github.com/ExpDev07/coronavirus-tracker-api">https://github.com/ExpDev07/coronavirus-tracker-api</a>)
+        </li>
         <li><strong>Code</strong> - <a href="https://github.com/bradymholt/covid19-chart">https://github.com/bradymholt/covid19-chart</a></li>
-      </ul>    
+      </ul>
     </footer>
     <script>
       const country1Default = "US";
@@ -137,6 +170,8 @@
         const margin = { top: 30, right: 100, bottom: 30, left: 50 },
           width = 960 - margin.left - margin.right,
           height = 500 - margin.top - margin.bottom;
+        const containerWidth = width + margin.left + margin.right,
+          containerHeight = height + margin.top + margin.bottom;
 
         // Setup ranges
         const x = d3.scaleTime().range([0, width]);
@@ -144,10 +179,12 @@
 
         // Append the svg object to the body of the page
         var svg = d3
-          .select("main")
+          .select(".chart")
+          .classed("svg-container", true)
           .append("svg")
-          .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom)
+          .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
+          //.attr("width", containerWidth)
+          //.attr("height", containerHeight)
           .append("g")
           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
