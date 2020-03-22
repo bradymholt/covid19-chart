@@ -30,6 +30,29 @@
         display: none;
       }
 
+      .selection {
+        display: flex;
+        visibility: hidden;
+      }
+
+      .loaded .selection {
+        display: flex;
+        visibility: visible;
+      }
+
+      select {
+        height: 1.6rem;
+        border: 1px solid #ccc;
+        background-color: #ffffff;
+        font-size: 1rem;
+      }
+
+      label {
+        line-height: 1.6rem;
+        font-weight: bold;
+        margin: 0 10px 0;
+      }
+
       path.country1 {
         stroke: steelblue;
         stroke-width: 2;
@@ -58,36 +81,16 @@
         shape-rendering: crispEdges;
       }
 
-      .selection {
-        display: flex;
-        visibility: hidden;
-      }
-
-      .loaded .selection {
-        display: flex;
-        visibility: visible;
-      }
-
-      select {
-        height: 1.6rem;
-        border: 1px solid #ccc;
-        background-color: #ffffff;
-        font-size: 1rem;
-      }
-
-      label {
-        line-height: 1.6rem;
-        font-weight: bold;
-        margin: 0 10px 0;
-      }
-
       @media screen and (max-width: 650px) {
         .chart,
         .loading {
           height: auto;
+          min-height: 100px;
         }
 
         .selection {
+          visibility: visible;
+          display: none;
           flex-direction: column;
           align-items: initial;
         }
