@@ -35,8 +35,15 @@
         visibility: hidden;
       }
 
+      .selection div {
+        display: flex;
+      }
+
       .loaded .selection {
         display: flex;
+        min-height: 65px;
+        flex-direction: column;
+        justify-content: space-between;
         visibility: visible;
       }
 
@@ -88,11 +95,8 @@
           min-height: 100px;
         }
 
-        .selection {
-          visibility: visible;
-          display: none;
+        .selection div {
           flex-direction: column;
-          align-items: initial;
         }
 
         .selection label {
@@ -104,10 +108,16 @@
   <body>
     <h1>Confirmed COVID-19 Cases</h1>
     <div class="selection">
-      <label for="country1">Country 1:</label>
-      <select id="country1"></select>
-      <label for="country2">Country 2:</label>
-      <select id="country2"></select>
+      <div>
+        <span><input type="radio" name="type" id="confirmed" value="confirmed" checked="checked" /><label for="confirmed">Confirmed</label></span>
+        <span><input type="radio" name="type" id="deaths" value="deaths" /><label for="deaths">Deaths</label></span>
+      </div>
+      <div>
+        <label for="country1">Country 1:</label>
+        <select id="country1"></select>
+        <label for="country2">Country 2:</label>
+        <select id="country2"></select>
+      </div>
     </div>
     <main>
       <div class="chart">
@@ -131,13 +141,26 @@
       const country2Default = "Italy";
 
       function downloadData() {
-        return fetch("https://coronavirus-tracker-api.herokuapp.com/confirmed").then(response => response.json());
+        return fetch("https://coronavirus-tracker-api.herokuapp.com/all").then(response => response.json());
       }
 
-      function setupDropdowns(chartConfig, rawData) {
-        const countries = _.uniq(rawData.locations.map(l => l.country)).sort((a, b) => a.localeCompare(b));
+      function setupSelections(chartConfig, rawData) {
+        const confirmedRadio = document.getElementById("confirmed");
+        const deathsRadio = document.getElementById("deaths");
         const country1Select = document.getElementById("country1");
         const country2Select = document.getElementById("country2");
+
+        const addChangeListener = element => {
+          element.addEventListener("change", event => {
+            updateChart(chartConfig, rawData, country1Select, country2Select);
+          });
+        };
+
+        addChangeListener(confirmedRadio);
+        addChangeListener(deathsRadio);
+
+        // Note: We're using rawData.confirmed to construct select lists even though the user can specify deaths.
+        const countries = _.uniq(rawData.confirmed.locations.map(l => l.country)).sort((a, b) => a.localeCompare(b));
 
         for (let countryName of countries) {
           const el = document.createElement("option");
@@ -157,13 +180,8 @@
           country2Select.appendChild(el2);
         }
 
-        country1Select.addEventListener("change", event => {
-          updateChart(chartConfig, rawData, country1Select, country2Select);
-        });
-
-        country2Select.addEventListener("change", event => {
-          updateChart(chartConfig, rawData, country1Select, country2Select);
-        });
+        addChangeListener(country1Select);
+        addChangeListener(country2Select);
 
         return { country1Select, country2Select };
       }
@@ -194,11 +212,13 @@
         return { svg, x, y, width, height };
       }
 
-      function gatherChartData(data, country1, country2) {
+      function gatherChartData(rawData, type, country1, country2) {
+        const sourceData = rawData[type];
+
         let usData = null;
         if (country1 == "US" || country2 == "US") {
           // US data is segmented by province (State) so we need to combine it all
-          usData = data.locations
+          usData = sourceData.locations
             .filter(d => d.country == "US" && d.province.indexOf(", ") == -1)
             .map(p => p.history)
             .reduce((result, c) => {
@@ -208,7 +228,7 @@
               return result;
             }, {});
         }
-        const getCountryData = country => (country == "US" ? usData : data.locations.find(d => d.country == country).history);
+        const getCountryData = country => (country == "US" ? usData : sourceData.locations.find(d => d.country == country).history);
 
         let maxDate = null;
         let maxCount = null;
@@ -296,10 +316,11 @@
       }
 
       function updateChart(chartConfig, rawData, country1Select, country2Select) {
+        const type = document.querySelector('input[name="type"]:checked').value;
         const country1 = country1Select.options[country1Select.selectedIndex].value;
         const country2 = country2Select.options[country2Select.selectedIndex].value;
 
-        const chartData = gatherChartData(rawData, country1, country2);
+        const chartData = gatherChartData(rawData, type, country1, country2);
 
         renderData(chartConfig, chartData);
       }
@@ -307,7 +328,7 @@
       document.addEventListener("DOMContentLoaded", event => {
         downloadData().then(rawData => {
           const chartConfig = setupChart();
-          const { country1Select, country2Select } = setupDropdowns(chartConfig, rawData);
+          const { country1Select, country2Select } = setupSelections(chartConfig, rawData);
 
           // Initially render the chart
           updateChart(chartConfig, rawData, country1Select, country2Select);
