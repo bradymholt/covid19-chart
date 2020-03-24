@@ -203,9 +203,7 @@
           .select(".chart")
           .classed("svg-container", true)
           .append("svg")
-          .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
-          //.attr("width", containerWidth)
-          //.attr("height", containerHeight)
+          .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)          
           .append("g")
           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
