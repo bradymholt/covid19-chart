@@ -11,12 +11,34 @@
         font: 0.8rem Arial;
       }
 
-      .loading {
-        position: absolute;
+      .selection {
         display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 1.5rem;
+        min-height: 65px;
+        visibility: hidden;
+      }
+
+      .selection div {
+        display: flex;
+      }
+
+      .selection select {
+        height: 1.6rem;
+        border: 1px solid #ccc;
+        background-color: #ffffff;
+        font-size: 1rem;
+      }
+
+      .selection label {
+        line-height: 1.6rem;
+        font-weight: bold;
+        margin: 0 10px 0;
+      }
+
+      .loaded .selection {
+        display: flex;        
+        flex-direction: column;
+        justify-content: space-between;
+        visibility: visible;
       }
 
       .chart,
@@ -26,39 +48,17 @@
         max-width: 100%;
       }
 
+      .loading {
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.5rem;
+      }
+
       .loaded .loading {
         display: none;
-      }
-
-      .selection {
-        display: flex;
-        visibility: hidden;
-      }
-
-      .selection div {
-        display: flex;
-      }
-
-      .loaded .selection {
-        display: flex;
-        min-height: 65px;
-        flex-direction: column;
-        justify-content: space-between;
-        visibility: visible;
-      }
-
-      select {
-        height: 1.6rem;
-        border: 1px solid #ccc;
-        background-color: #ffffff;
-        font-size: 1rem;
-      }
-
-      label {
-        line-height: 1.6rem;
-        font-weight: bold;
-        margin: 0 10px 0;
-      }
+      }    
 
       path.country1 {
         stroke: steelblue;
@@ -203,7 +203,7 @@
           .select(".chart")
           .classed("svg-container", true)
           .append("svg")
-          .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)          
+          .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
           .append("g")
           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
