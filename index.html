@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <title>COVID-19 Cases</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js"></script>
     <style>
       body {
@@ -35,7 +34,7 @@
       }
 
       .loaded .selection {
-        display: flex;        
+        display: flex;
         flex-direction: column;
         justify-content: space-between;
         visibility: visible;
@@ -43,8 +42,8 @@
 
       .chart,
       .loading {
-        width: 960px;
-        height: 500px;
+        width: 1200px;
+        height: 628px;
         max-width: 100%;
       }
 
@@ -58,7 +57,7 @@
 
       .loaded .loading {
         display: none;
-      }    
+      }
 
       path.country1 {
         stroke: steelblue;
@@ -160,7 +159,10 @@
         addChangeListener(deathsRadio);
 
         // Note: We're using rawData.confirmed to construct select lists even though the user can specify deaths.
-        const countries = _.uniq(rawData.confirmed.locations.map(l => l.country)).sort((a, b) => a.localeCompare(b));
+        const countries = rawData.confirmed.locations
+          .filter(l => !l.province)
+          .map(l => l.country)
+          .sort((a, b) => a.localeCompare(b));
 
         for (let countryName of countries) {
           const el = document.createElement("option");
@@ -188,7 +190,7 @@
 
       function setupChart() {
         // Set the dimensions and margins of the graph
-        const margin = { top: 30, right: 100, bottom: 30, left: 50 },
+        const margin = { top: 30, right: 150, bottom: 30, left: 50 },
           width = 960 - margin.left - margin.right,
           height = 500 - margin.top - margin.bottom;
         const containerWidth = width + margin.left + margin.right,
@@ -213,26 +215,11 @@
       function gatherChartData(rawData, type, country1, country2) {
         const sourceData = rawData[type];
 
-        let usData = null;
-        if (country1 == "US" || country2 == "US") {
-          // US data is segmented by province (State) so we need to combine it all
-          usData = sourceData.locations
-            .filter(d => d.country == "US" && d.province.indexOf(", ") == -1)
-            .map(p => p.history)
-            .reduce((result, c) => {
-              Object.keys(c).forEach(day => {
-                result[day] = (result[day] || 0) + c[day];
-              });
-              return result;
-            }, {});
-        }
-        const getCountryData = country => (country == "US" ? usData : sourceData.locations.find(d => d.country == country).history);
-
         let maxDate = null;
         let maxCount = null;
 
         const countries = [country1, country2].map(country => {
-          const countryData = getCountryData(country);
+          const countryData = sourceData.locations.find(d => d.country == country && !d.province).history;
           const data = Object.keys(countryData)
             .map(k => {
               const date = d3.timeParse("%m/%d/%y")(k);
