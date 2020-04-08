@@ -129,7 +129,7 @@
       <ul>
         <li><strong>Data</strong> - <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 (2019-nCoV) Data Repository by Johns Hopkins CSSE</a></li>
         <li>
-          <strong>API</strong> - <a href="https://gentle-peak-51697.herokuapp.com">https://gentle-peak-51697.herokuapp.com</a> (source code:
+          <strong>API</strong> - <a href="https://coronavirus-tracker-api.herokuapp.com/confirmed">https://coronavirus-tracker-api.herokuapp.com/confirmed</a> (source code:
           <a href="https://github.com/ExpDev07/coronavirus-tracker-api">https://github.com/ExpDev07/coronavirus-tracker-api</a>)
         </li>
         <li><strong>Code</strong> - <a href="https://github.com/bradymholt/covid19-chart">https://github.com/bradymholt/covid19-chart</a></li>
@@ -139,8 +139,26 @@
       const country1Default = "US";
       const country2Default = "Italy";
 
+      function fetchData(url) {
+        return fetch(url).then((response) => {
+          if (response.status != 200) {
+            throw new Error(`Unexpected response status: ${response.status}`);
+          } else {
+            return response.json();
+          }
+        });
+      }
       function downloadData() {
-        return fetch("https://gentle-peak-51697.herokuapp.com/all").then(response => response.json());
+        const primaryDataUrl = "https://coronavirus-tracker-api.herokuapp.com/all";
+        const backupDataUrl = "https://gentle-peak-51697.herokuapp.com/all";
+        return fetchData(primaryDataUrl).catch((error) => {
+          console.log(error);
+          console.warn(`Fetching data from primary API (${primaryDataUrl}) failed so attempting to use backup API (${backupDataUrl}).`);
+          return fetchData(backupDataUrl).catch((error) => {
+            console.log(error);
+            console.error(`Fetching data failed.`);
+          });
+        });
       }
 
       function setupSelections(chartConfig, rawData) {
@@ -149,8 +167,8 @@
         const country1Select = document.getElementById("country1");
         const country2Select = document.getElementById("country2");
 
-        const addChangeListener = element => {
-          element.addEventListener("change", event => {
+        const addChangeListener = (element) => {
+          element.addEventListener("change", (event) => {
             updateChart(chartConfig, rawData, country1Select, country2Select);
           });
         };
@@ -160,8 +178,8 @@
 
         // Note: We're using rawData.confirmed to construct select lists even though the user can specify deaths.
         const countries = rawData.confirmed.locations
-          .filter(l => !l.province)
-          .map(l => l.country)
+          .filter((l) => !l.province)
+          .map((l) => l.country)
           .sort((a, b) => a.localeCompare(b));
 
         for (let countryName of countries) {
@@ -218,10 +236,10 @@
         let maxDate = null;
         let maxCount = null;
 
-        const countries = [country1, country2].map(country => {
-          const countryData = sourceData.locations.find(d => d.country == country && !d.province).history;
+        const countries = [country1, country2].map((country) => {
+          const countryData = sourceData.locations.find((d) => d.country == country && !d.province).history;
           const data = Object.keys(countryData)
-            .map(k => {
+            .map((k) => {
               const date = d3.timeParse("%m/%d/%y")(k);
               const count = +countryData[k];
 
@@ -253,7 +271,7 @@
 
         // Scale the range of the data
         chartConfig.x.domain(
-          d3.extent(chartData.countries[0].data, function(d) {
+          d3.extent(chartData.countries[0].data, function (d) {
             return d.date;
           })
         );
@@ -266,10 +284,10 @@
           // Build the line
           const line = d3
             .line()
-            .x(function(d) {
+            .x(function (d) {
               return chartConfig.x(d.date);
             })
-            .y(function(d) {
+            .y(function (d) {
               return chartConfig.y(d.count);
             });
 
@@ -310,8 +328,8 @@
         renderData(chartConfig, chartData);
       }
 
-      document.addEventListener("DOMContentLoaded", event => {
-        downloadData().then(rawData => {
+      document.addEventListener("DOMContentLoaded", (event) => {
+        downloadData().then((rawData) => {
           const chartConfig = setupChart();
           const { country1Select, country2Select } = setupSelections(chartConfig, rawData);
 
@@ -323,7 +341,7 @@
       });
     </script>
     <a href="https://github.com/bradymholt/covid19-chart" class="github-corner" aria-label="View source on GitHub">
-      <svg width="80" height="80" viewBox="0 0 250 250" style="fill:#70B7FD; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
+      <svg width="80" height="80" viewBox="0 0 250 250" style="fill: #70b7fd; color: #fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
         <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
         <path
           d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2"
